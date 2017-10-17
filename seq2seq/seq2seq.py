@@ -1,5 +1,4 @@
 
-
 import tensorflow as tf
 import numpy as np
 import collections
@@ -8,7 +7,6 @@ import time
 class Model(object):
   def __init__(self, args, mode, name="Model"):
     self._num_layers = args.num_layers
-    self._num_residual_layers = args.num_residual_layers
     self._encoder_vocab_size = args.encoder_vocab_size
     self._encoder_embed_size = args.encoder_embed_size
     self._decoder_vocab_size = args.decoder_vocab_size
@@ -23,8 +21,6 @@ class Model(object):
 
     self.batch_size = args.batch_size
     self.mode = mode
-    self.saver = tf.train.saver(tf.get_variables())
-    #self.saver = tf.train.saver()
 
     self._optimizer = tf.train.AdamOptimizer()
     self.global_step = tf.get_variable('global_step', [], 'int32', 
@@ -35,8 +31,9 @@ class Model(object):
     self._build_loss()
     self._build_train()
 
-    #init_op = tf.global_variables_initializer()
-    #self._sess.run(init_op)
+    self.saver = tf.train.Saver(tf.global_variables())
+
+    #if self.mode == tf.contrib.learn.ModeKeys.TRAIN:
 
   def _build_placeholder(self):
     with tf.name_scope("data"):
@@ -96,17 +93,19 @@ class Model(object):
       decoder_cell, decoder_initial_state = self._build_decoder_cell(self._hidden_size, 
                                   self._forget_bias, self._num_layers, self.mode, encoder_state, self._dropout)
 
-      helper = tf.contrib.seq2seq.TrainingHelper(decoder_embed_inp, self.decoder_length, name="de_helper")
-      my_decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper, encoder_state)
-      output, final_state, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder)
+      if self.mode != tf.contrib.learn.ModeKeys.INFER:
+        helper = tf.contrib.seq2seq.TrainingHelper(decoder_embed_inp, self.decoder_length, name="de_helper")
+        my_decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper, encoder_state)
+        output, final_state, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder)
 
-      sample_id = output.sample_id
-      logits = tf.layers.dense(output.rnn_output, self._decoder_vocab_size, use_bias=False, name="output_projection")
+        sample_id = output.sample_id
+        logits = tf.layers.dense(output.rnn_output, self._decoder_vocab_size, use_bias=False, name="output_projection")
 
+      else
       #unk:0 sos:1 eos:2
-      start_tokens = tf.fill([self.batch_size], 1)
-      end_token = 2
-      scope.reuse_variables()
+        start_tokens = tf.fill([self.batch_size], 1)
+        end_token = 2
+      #scope.reuse_variables()
 
       if self._beam_width > 0:
         my_decoder_infer = tf.contrib.seq2seq.BeamSearchDecoder(cell=decoder_cell, embedding=decoder_embed, 
@@ -128,7 +127,7 @@ class Model(object):
 
   def _build_encoder_cell(self, num_units, forget_bias, num_layers, mode, dropout):
 
-    return self._build_rnn_cell(self, num_units, forget_bias, num_layers, mode, dropout)
+    return self._build_rnn_cell(num_units, forget_bias, num_layers, mode, dropout)
 
   def _build_decoder_cell(self, num_units, forget_bias, num_layers, mode, encoder_state, dropout):
     cell = self._build_rnn_cell(num_units, forget_bias, num_layers, mode, dropout)
@@ -207,50 +206,3 @@ class Model(object):
     if initializer:
       initializer = initializer
     return tf.get_variable(shape=shape, initializer=initializer, name=name)
-
-class TrainModel(collections.namedtuple("TrainModel", ("graph", "model"))):
-  pass
-
-def build_train_model(args, name="train_model"):
-  graph = tf.Graph()
-  with graph.as_default():
-    model = Model(args, mode=tf.contrib.learn.ModeKeys.TRAIN, name=name)
-    return TrainModel(graph=graph, model=model)
-
-class EvalModel(collections.namedtuple("EvalModel", ("graph", "model"))):
-  pass
-
-def build_eval_model(args, name="eval_model"):
-  graph = tf.Graph()
-  with graph.as_default():
-    model = Model(args, mode=tf.contrib.learn.ModeKeys.EVAL, name=name)
-    return EvalModel(graph=graph, model=model)
-
-class InferModel(collections.namedtuple("InferModel", ("graph", "model"))):
-  pass
-
-def build_infer_model(args, name="infer_model"):
-  graph = tf.Graph()
-  with graph.as_default():
-    model = Model(args, mode=tf.contrib.learn.ModeKeys.INFER, name=name)
-    return InferModel(graph=graph, model=model)
-
-def load_model(model, latest_ckpt, session, name):
-  start_time = time.time()
-  model.saver().restore(session, latest_ckpt)
-  utils.print_out("  loaded %s model parameters from %s, time %.2fs" %
-      (name, ckpt, time.time() - start_time))
-  return model
-
-def create_or_load_model(model, ckpt_dir, session, name):
-  latest_ckpt = tf.train.latest_checkpoint(ckpt_dir)
-  if latest_ckpt:
-    model = load_model(latest_ckpt)
-  else:
-    start_time = time.time()
-    session.run(tf.global_variables_initializer())
-    utils.print_out("  created %s model with fresh parameters, time %.2fs" 
-                        % (name, time.time() - start_time))
-
-  global_step = session.run(model.global_step)
-  return model, global_step

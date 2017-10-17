@@ -1,39 +1,50 @@
 
+#from __future__ import print_function
+
 from collections import Counter
+import tensorflow as tf
 import numpy as np
 import sys
 import time
 
 #data utils
 def load_data(file_dir):
-  print 'Read sentences from file'
+  print_out("Loading data files.")
+  start_time =time.time()
   f = open(file_dir, 'r')
   sentences = []
-  while True:
+  i = 0
+  while i < 100:
     sentence = f.readline()
     if not sentence:
       break
 
     sentence = sentence.strip().lower()
     sentences.append(sentence)
+    i = i+1
   f.close()
+  print_out("Loaded %d sentences from files, time %.2fs" % (len(sentences), time.time() - start_time))
   return sentences
 
-def filter_sentences(sentence, whitelist):
+
+def filter_sentences(sentences, whitelist):
   """
     filter out the emoji in a sentence
     whitelist: 
   """
-  return "".join([ch for ch in sentence if ch in whitelist])
+  def filter_sentence(sentence, whitelist):
+    return "".join([ch for ch in sentence if ch in whitelist])
+
+  return [filter_sentence(sentence, whitelist) for sentence in sentences] 
 
 def build_vocab(sentences, max_words=None):
-  print "Buildding vocabulary..."
+  print_out("Buildding vocabulary...")
   word_count = Counter()
   for sentence in sentences:
     for word in sentence.split(" "):
       word_count[word] += 1
 
-  print "The dataset has %d different words totally" % len(word_count)
+  print_out("The dataset has %d different words totally" % len(word_count))
   if not max_words:
     max_words = len(word_count)
   else:
@@ -43,14 +54,14 @@ def build_vocab(sentences, max_words=None):
   index2word = ["<unk>"] + ["<s>"] + ["</s>"] + [word[0] for word in word_dict]
   word2index = dict([(word, idx) for idx, word in enumerate(index2word)])
 
-  print "%d words filtered out of the vocabulary and %d words in the vocabulary" % (filter_out_words, max_words)
+  print_out("%d words filtered out of the vocabulary and %d words in the vocabulary" % (filter_out_words, max_words))
   return index2word, word2index
 
 def split_data(sentences, limits):
   queries = []
   answers = []
   num_example = len(sentences) // 2
-  print "The dataset has %d queries and answers tuple" % num_example
+  print_out("The dataset has %d queries and answers tuple" % num_example)
 
   for i in range(0, len(sentences), 2):
     qlen, alen = len(sentences[i].split(" ")), len(sentences[i+1].split(" "))
@@ -61,7 +72,7 @@ def split_data(sentences, limits):
 
   filtered_data_len = len(queries)
   filter_out_len = num_example - filtered_data_len
-  print '%d tuple filtered out of raw data filter_out_len' % filter_out_len
+  print_out('%d tuple filtered out of the raw data' % filter_out_len)
   return queries, answers
 
 def vectorize(queries,  answers, word2index, sort_by_len=False, verbose=True):
@@ -82,7 +93,7 @@ def vectorize(queries,  answers, word2index, sort_by_len=False, verbose=True):
     vec_answers.append(seq_a)
 
     if verbose and (idx % 50000 == 0):
-      print("Vectorization: processed {}".format(idx))
+      print_out("Vectorization: processed {}".format(idx))
 
   def len_argsort(seq):
     return sorted(range(len(seq)), key=lambda x: len(seq[x]))
@@ -138,7 +149,7 @@ def get_batches(queries, answers, batch_size):
 
 def print_time(s, start_time):
   """Take a start time, print elapsed duration, and return a new time."""
-  print("%s, time %ds, %s." % (s, (time.time() - start_time), time.ctime()))
+  print_out("%s, time %ds, %s." % (s, (time.time() - start_time), time.ctime()))
   sys.stdout.flush()
   return time.time()
 
@@ -155,7 +166,7 @@ def print_out(s, f=None, new_line=True):
   out_s = s.encode("utf-8")
   if not isinstance(out_s, str):
     out_s = out_s.decode("utf-8")
-  print(out_s, end="", file=sys.stdout)
+  print out_s,
 
   if new_line:
     sys.stdout.write("\n")
