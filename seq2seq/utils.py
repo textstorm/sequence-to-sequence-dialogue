@@ -105,6 +105,10 @@ def vectorize(queries,  answers, word2index, sort_by_len=False, verbose=True):
 
   return vec_queries, vec_answers
 
+def de_vectorize(sample_id, index2word):
+  """ The reverse process of vectorization"""
+  return " ".join([index2word[i] for i in sample_id])
+
 def padding_data(sentences):
   """
     in general,when padding data,first generate all-zero matrix,then for every

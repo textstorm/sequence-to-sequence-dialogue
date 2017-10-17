@@ -12,8 +12,8 @@ def get_args():
   parser.add_argument('--data_dir', type=str, default='/root/textstorm/Seq2Seq/data/Twitter/chat.txt', help='Tdata directory')
   parser.add_argument('--log_dir', type=str, default='logs', help='Tensorboard logs directory')
   parser.add_argument('--save_dir', type=str, default='/root/textstorm/Seq2Seq/saves/', help='Train batch size')
-  parser.add_argument('--whitelist', type=str, default='0123456789abcdefghijklmnopqrstuvwxyz\' ')
-  parser.add_argument('--max_words', type=int, default=10000, help='The max words in the dictionary')
+  parser.add_argument('--whitelist', type=str, default='0123456789abcdefghijklmnopqrstuvwxyz\' ', help="characters not filtered out")
+  parser.add_argument('--max_words', type=int, default=5000, help='The max words in the dictionary')
   parser.add_argument('--q_max_len', type=int, default=20, help='The max first utterance length')
   parser.add_argument('--a_max_len', type=int, default=20, help='The max second utterance length')
   parser.add_argument('--q_min_len', type=int, default=1, help='The min first utterance length')
@@ -33,7 +33,7 @@ def get_args():
   parser.add_argument('--beam_width', type=int, default=1, help='The beam width when infer')
 
   #optimizer details
-  parser.add_argument('--nb_epoch', type=int, default=10, help='The number of epoch')
+  parser.add_argument('--nb_epoch', type=int, default=1, help='The number of epoch')
   parser.add_argument('--learning_rate', type=float, default=0.01, help='Learning rate')
   parser.add_argument('--dropout', type=float, default=0.2, help='Dropout rate')
   parser.add_argument('--max_grad_norm', type=float, default=10.0, help='Max norm of gradient')

@@ -1,5 +1,6 @@
 
 import tensorflow as tf
+import numpy as np
 import collections
 import utils
 import config
@@ -8,7 +9,6 @@ import helper
 import time
 import os
 
-tensorflow
 class Limits(
   collections.namedtuple("Limits", ("q_max_len", "a_max_len", "q_min_len", "a_min_len"))):
   pass
@@ -22,13 +22,24 @@ def prepare_quries_answers(args):
   queries, answers = utils.split_data(chat_data, Limits)
   queries, answers = utils.vectorize(queries,  answers, word2index, sort_by_len=True)
 
-  return queries, answers
+  return queries, answers, index2word, word2index
+
+def infer_test(infer_model, infer_sess, args, queries, index2word):
+  with infer_model.graph.as_default():
+    new_infer_model, global_step = helper.create_or_load_model(
+                  infer_model.model, args.save_dir, infer_sess, name="infer")
+    decode_id = np.random.randint(0, len(queries) - 1)
+    encoder_input = queries[decode_id].reshape(1, -1)
+    encoder_input_len = [len(encoder_input)]
+    sample_id = new_infer_model.infer(encoder_input, encoder_input_len, infer_sess)
+    utils.print_out(utils.de_vectorize(encoder_input, index2word))
+    utils.print_out(utils.de_vectorize(sample_id, index2word))
 
 def main(args):
 
   utils.print_out("Sequence-to-Sequence dialogue")
   utils.print_out("- " * 50)
-  queries, answers = prepare_quries_answers(args)
+  queries, answers, index2word, word2index = prepare_quries_answers(args)
   batch_data = utils.get_batches(queries, answers, args.batch_size)
 
   config_proto = utils.get_config_proto()
@@ -64,6 +75,8 @@ def main(args):
           print "Epoch: ", '%01d' % epoch, "Batch: ", '%04d' % idx, "Loss: ", '%9.9f' % loss_t
 
       #saver.save(session, save_dir, global_step=new_train_model.global_step)
+
+    infer_test(infer_model, infer_sess, args, queries, index2word)
 
 if __name__ == "__main__":
   args = config.get_args()

@@ -1,4 +1,5 @@
 
+from tensorflow.python.layers import core as layers_core
 import tensorflow as tf
 import numpy as np
 import collections
@@ -26,14 +27,15 @@ class Model(object):
     self.global_step = tf.get_variable('global_step', [], 'int32', 
                               tf.constant_initializer(0), trainable=False)
 
+    with tf.variable_scope("seq2seq"):
+      with tf.variable_scope("decoder"):
+        self.output_layer = layers_core.Dense(
+            self._decoder_vocab_size, use_bias=False, name="output_projection")
+
     self._build_placeholder()
     self._build_forward()
-    self._build_loss()
-    self._build_train()
 
     self.saver = tf.train.Saver(tf.global_variables())
-
-    #if self.mode == tf.contrib.learn.ModeKeys.TRAIN:
 
   def _build_placeholder(self):
     with tf.name_scope("data"):
@@ -41,14 +43,20 @@ class Model(object):
       self.encoder_length = tf.placeholder(tf.int32, [None], name="encoder_length")
       self.decoder_input = tf.placeholder(tf.int32, [None, None], name="decoder_data")
       self.decoder_length = tf.placeholder(tf.int32, [None], name="decoder_length")
+
     with tf.name_scope("hpara"):
       self.lr = tf.placeholder(tf.float32, [], name="learning_rate")
 
   def _build_forward(self):
     with tf.variable_scope("seq2seq"):
       encoder_output, encoder_state = self._build_encoder()
-      self.logits, self.sample_id, self.final_state, self.logits_infer, self.sample_id_infer, \
-          self.final_state_infer = self._build_decoder(encoder_state)
+      self.logits, self.sample_id, self.final_state = self._build_decoder(encoder_state)
+
+      if self.mode != tf.contrib.learn.ModeKeys.INFER:
+        self._build_loss()
+        self._build_train()
+      else:
+        self.loss = None
 
   def _build_encoder(self):
     with tf.variable_scope("encoder") as scope:
@@ -95,35 +103,35 @@ class Model(object):
 
       if self.mode != tf.contrib.learn.ModeKeys.INFER:
         helper = tf.contrib.seq2seq.TrainingHelper(decoder_embed_inp, self.decoder_length, name="de_helper")
-        my_decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper, encoder_state)
+        my_decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper, decoder_initial_state)
         output, final_state, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder)
 
         sample_id = output.sample_id
-        logits = tf.layers.dense(output.rnn_output, self._decoder_vocab_size, use_bias=False, name="output_projection")
+        logits = self.output_layer(output.rnn_output)
 
-      else
-      #unk:0 sos:1 eos:2
+      else:
+        #unk:0 sos:1 eos:2
         start_tokens = tf.fill([self.batch_size], 1)
         end_token = 2
-      #scope.reuse_variables()
 
-      if self._beam_width > 0:
-        my_decoder_infer = tf.contrib.seq2seq.BeamSearchDecoder(cell=decoder_cell, embedding=decoder_embed, 
-            start_tokens=start_tokens, end_token=end_token, initial_state=decoder_initial_state, beam_width=self._beam_width)
+        if self._beam_width > 0:
+          my_decoder = tf.contrib.seq2seq.BeamSearchDecoder(cell=decoder_cell, embedding=decoder_embed, start_tokens=start_tokens, 
+              end_token=end_token, initial_state=decoder_initial_state, output_layer=self.output_layer, beam_width=self._beam_width)
 
-      else:
-        my_decoder_infer = tf.contrib.seq2seq.GreedyEmbeddingHelper(decoder_embed, start_tokens, end_token)
+        else:
+          helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(decoder_embed, start_tokens, end_token)
+          my_decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper, decoder_initial_state, output_layer=self.output_layer)
 
-      output_infer, final_state_infer, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder_infer)
+        output, final_state, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder)
 
-      if self._beam_width > 0:
-        logits_infer = tf.no_op()
-        sample_id_infer = output_infer.predicted_ids
-      else:
-        logits_infer = output_infer.rnn_output
-        sample_id_infer = output_infer.sample_id
+        if self._beam_width > 0:
+          logits = tf.no_op()
+          sample_id = output.predicted_ids
+        else:
+          logits = output.rnn_output
+          sample_id = output.sample_id
 
-    return logits, sample_id, final_state, logits_infer, sample_id_infer, final_state_infer
+    return logits, sample_id, final_state
 
   def _build_encoder_cell(self, num_units, forget_bias, num_layers, mode, dropout):
 
@@ -180,7 +188,7 @@ class Model(object):
 
   def infer(self, encoder_input, encoder_length, session):
     feed_dict = {self.encoder_input: encoder_input, self.encoder_length: encoder_length}
-    logits, sample_id = session.run([self.logits_infer, self.sample_id_infer],feed_dict=feed_dict)
+    logits, sample_id = session.run([self.logits, self.sample_id], feed_dict=feed_dict)
     return sample_id
 
   def _weight_variable(self, shape, name, initializer=None):
