@@ -50,12 +50,14 @@ class Model(object):
   def _build_forward(self):
     with tf.variable_scope("seq2seq"):
       encoder_output, encoder_state = self._build_encoder()
-      self.logits, self.sample_id, self.final_state = self._build_decoder(encoder_state)
+      #self.logits, self.sample_id, self.final_state = self._build_decoder(encoder_state)
+      res = self._build_decoder(encoder_state)
 
       if self.mode != tf.contrib.learn.ModeKeys.INFER:
         self._build_loss()
         self._build_train()
       else:
+        self.infer_logits, self.final_context_state, self.sample_id = res
         self.loss = None
 
   def _build_encoder(self):
@@ -165,11 +167,11 @@ class Model(object):
     time_axis = 1
     return tensor.shape[time_axis].value or tf.shape(tensor)[time_axis]
 
-  def _build_loss(self):
+  def _build_loss(self, logits):
     with tf.name_scope("train"):
       max_len = self.get_max_time(self.decoder_input)
-      loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.decoder_input, logits=self.logits)
-      weight = tf.sequence_mask(self.decoder_length, max_len, dtype=self.logits.dtype)
+      loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.decoder_input, logits=logits)
+      weight = tf.sequence_mask(self.decoder_length, max_len, dtype=logits.dtype)
 
       self.loss_op = tf.reduce_sum(loss * weight) / tf.to_float(self.batch_size)
 
