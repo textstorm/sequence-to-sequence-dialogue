@@ -21,7 +21,6 @@ def get_args():
   parser.add_argument('--batch_size', type=int, default=32, help='Train batch size')
 
   #model details
-  parser.add_argument('--embedding_size', type=int, default=100, help='The dimension of embedding')
   parser.add_argument('--hidden_size', type=int, default=128, help='The dimension of rnn hidden layer')
   parser.add_argument('--num_layers', type=int, default=1, help='The layers number of rnn')
   parser.add_argument('--forget_bias', type=int, default=1, help='The forget bias')

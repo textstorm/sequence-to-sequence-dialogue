@@ -107,7 +107,7 @@ def vectorize(queries,  answers, word2index, sort_by_len=False, verbose=True):
 
 def de_vectorize(sample_id, index2word):
   """ The reverse process of vectorization"""
-  return " ".join([index2word[i] for i in sample_id])
+  return " ".join([index2word[int(i)] for i in sample_id if i >= 0])
 
 def padding_data(sentences):
   """

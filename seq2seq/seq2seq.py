@@ -54,10 +54,10 @@ class Model(object):
       res = self._build_decoder(encoder_state)
 
       if self.mode != tf.contrib.learn.ModeKeys.INFER:
-        self._build_loss()
+        self._build_loss(res[0])
         self._build_train()
       else:
-        self.infer_logits, self.final_context_state, self.sample_id = res
+        self.infer_logits, self.infer_sample_id, self.final_context_state, = res
         self.loss = None
 
   def _build_encoder(self):
@@ -113,7 +113,8 @@ class Model(object):
 
       else:
         #unk:0 sos:1 eos:2
-        start_tokens = tf.fill([self.batch_size], 1)
+        #start_tokens = tf.fill([self.batch_size], 1)
+        start_tokens = tf.fill([1], 1)
         end_token = 2
 
         if self._beam_width > 0:
@@ -190,7 +191,7 @@ class Model(object):
 
   def infer(self, encoder_input, encoder_length, session):
     feed_dict = {self.encoder_input: encoder_input, self.encoder_length: encoder_length}
-    logits, sample_id = session.run([self.logits, self.sample_id], feed_dict=feed_dict)
+    logits, sample_id = session.run([self.infer_logits, self.infer_sample_id], feed_dict=feed_dict)
     return sample_id
 
   def _weight_variable(self, shape, name, initializer=None):
