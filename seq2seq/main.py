@@ -33,13 +33,11 @@ def infer_test(infer_model, infer_sess, args, queries, index2word):
     encoder_input = queries[decode_id].reshape(1, -1)
     encoder_input_len = [len(encoder_input)]
     sample_id = new_infer_model.infer(encoder_input, encoder_input_len, infer_sess)
-    print sample_id
+    print sample_id.flatten()
+    print len(sample_id.flatten())
     print list(chain.from_iterable(encoder_input))
-    print "go"
     #utils.print_out(utils.de_vectorize(encoder_input, index2word))
-    #print "go"
     #utils.print_out(utils.de_vectorize(sample_id, index2word))
-    #print "go"
 
 def main(args):
 

@@ -24,8 +24,8 @@ class Model(object):
     self.mode = mode
 
     self._optimizer = tf.train.AdamOptimizer()
-    self.global_step = tf.get_variable('global_step', [], 'int32', 
-                              tf.constant_initializer(0), trainable=False)
+    self.global_step = tf.get_variable(
+      'global_step', [], 'int32', tf.constant_initializer(0), trainable=False)
 
     with tf.variable_scope("seq2seq"):
       with tf.variable_scope("decoder"):
@@ -50,7 +50,6 @@ class Model(object):
   def _build_forward(self):
     with tf.variable_scope("seq2seq"):
       encoder_output, encoder_state = self._build_encoder()
-      #self.logits, self.sample_id, self.final_state = self._build_decoder(encoder_state)
       res = self._build_decoder(encoder_state)
 
       if self.mode != tf.contrib.learn.ModeKeys.INFER:
@@ -66,19 +65,19 @@ class Model(object):
       encoder_embed_inp = tf.nn.embedding_lookup(encoder_embed, self.encoder_input)
 
       if self._encoder_type == "uni":
-        encoder_cell = self._build_encoder_cell(self._hidden_size, self._forget_bias, 
-                                                self._num_layers, self.mode, self._dropout)
-        encoder_output, encoder_state = tf.nn.dynamic_rnn(encoder_cell, encoder_embed_inp, 
-                                              dtype=tf.float32, sequence_length=self.encoder_length)
+        encoder_cell = self._build_encoder_cell(
+          self._hidden_size, self._forget_bias, self._num_layers, self.mode, self._dropout)
+        encoder_output, encoder_state = tf.nn.dynamic_rnn(
+          encoder_cell, encoder_embed_inp, dtype=tf.float32, sequence_length=self.encoder_length)
 
       elif self._encoder_type == "bi":
         num_bi_layers = self._num_layers / 2
-        fw_cell = self._build_encoder_cell(self._hidden_size, self._forget_bias, 
-                                            num_bi_layers, self.mode, self._dropout)
-        bw_cell = self._build_encoder_cell(self._hidden_size, self._forget_bias,
-                                            num_bi_layers, self.mode, self._dropout)
-        bi_outputs, bi_state = tf.nn.bidirectional_dynamic_rnn(fw_cell, bw_cell, encoder_embed_inp,
-                                              dtype=tf.float32, sequence_length=self.encoder_length)
+        fw_cell = self._build_encoder_cell(
+          self._hidden_size, self._forget_bias, num_bi_layers, self.mode, self._dropout)
+        bw_cell = self._build_encoder_cell(
+          self._hidden_size, self._forget_bias, num_bi_layers, self.mode, self._dropout)
+        bi_outputs, bi_state = tf.nn.bidirectional_dynamic_rnn(
+          fw_cell, bw_cell, encoder_embed_inp, dtype=tf.float32, sequence_length=self.encoder_length)
         bi_outputs = tf.concat(bi_outputs, -1)
 
         if num_bi_layers == 1:
@@ -100,11 +99,20 @@ class Model(object):
       decoder_embed = self._build_embedding(self._decoder_vocab_size, self._decoder_embed_size, "de_embed")
       decoder_embed_inp = tf.nn.embedding_lookup(decoder_embed, self.decoder_input)
 
-      decoder_cell, decoder_initial_state = self._build_decoder_cell(self._hidden_size, 
-                                  self._forget_bias, self._num_layers, self.mode, encoder_state, self._dropout)
+      decoder_cell, decoder_initial_state = self._build_decoder_cell(
+        self._hidden_size, 
+        self._forget_bias, 
+        self._num_layers, 
+        self.mode, 
+        encoder_state, 
+        self._dropout)
 
       if self.mode != tf.contrib.learn.ModeKeys.INFER:
-        helper = tf.contrib.seq2seq.TrainingHelper(decoder_embed_inp, self.decoder_length, name="de_helper")
+        helper = tf.contrib.seq2seq.TrainingHelper(
+          decoder_embed_inp, 
+          self.decoder_length, 
+          name="de_helper")
+
         my_decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper, decoder_initial_state)
         output, final_state, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder)
 
@@ -123,7 +131,11 @@ class Model(object):
 
         else:
           helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(decoder_embed, start_tokens, end_token)
-          my_decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper, decoder_initial_state, output_layer=self.output_layer)
+          my_decoder = tf.contrib.seq2seq.BasicDecoder(
+            decoder_cell, 
+            helper, 
+            decoder_initial_state, 
+            output_layer=self.output_layer)
 
         output, final_state, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder)
 
