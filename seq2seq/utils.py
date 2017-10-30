@@ -27,15 +27,21 @@ def load_data(file_dir):
   return sentences
 
 
-def filter_sentences(sentences, whitelist):
-  """
-    filter out the emoji in a sentence
-    whitelist: 
-  """
-  def filter_sentence(sentence, whitelist):
-    return "".join([ch for ch in sentence if ch in whitelist])
+# def filter_sentences(sentences, whitelist):
+#   """
+#     filter out the emoji in a sentence
+#     whitelist: 
+#   """
+#   def filter_sentence(sentence, whitelist):
+#     return "".join([ch for ch in sentence if ch in whitelist])
 
-  return [filter_sentence(sentence, whitelist) for sentence in sentences] 
+#   return [filter_sentence(sentence, whitelist) for sentence in sentences] 
+
+def filter_sentences(sentences):
+  def filter_sentence(sentence):
+    sentence = re.sub(r"([.!?])", r" \1", sentence)
+    return re.sub(r"[^a-zA-Z.!?]+", r" ", sentence)
+  return [filter_sentence(sentence) for sentence in sentences]
 
 def build_vocab(sentences, max_words=None):
   print_out("Buildding vocabulary...")
