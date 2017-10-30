@@ -6,6 +6,7 @@ import tensorflow as tf
 import numpy as np
 import sys
 import time
+import nltk
 
 #data utils
 def load_data(file_dir):
@@ -42,6 +43,9 @@ def filter_sentences(sentences):
     sentence = re.sub(r"([.!?])", r" \1", sentence)
     return re.sub(r"[^a-zA-Z.!?]+", r" ", sentence)
   return [filter_sentence(sentence) for sentence in sentences]
+
+def tokenizer(sentence):
+  return nltk.word_tokenize(sentence)
 
 def build_vocab(sentences, max_words=None):
   print_out("Buildding vocabulary...")
