@@ -9,3 +9,12 @@ nltk.word_tokenize('I didn\'t have a pencil.')
 #['I', 'did', "n't", 'have', 'a', 'pencil', '.']
 nltk.word_tokenize('12,34.78 90.34% 12/20/2000 3/8')
 #['12,34.78', '90.34', '%', '12/20/2000', '3/8']   90.34% shouldn't be splited
+nltk.word_tokenize('U.S. i.e.')
+#['U.S.', 'i.e', '.']  if i.e. in the end of a sentence tokenize may be error
+nltk.word_tokenize('U.S. i.e. and.')
+#['U.S.', 'i.e', '.', 'and', '.']  it's right in general
+nltk.word_tokenize('AT&T Micro$oft')
+#['AT', '&', 'T', 'Micro', '$', 'oft']
+#when the word contains non-alphabetic characters, tokenize error
+nltk.word_tokenize('three-year-old so-call')
+#['three-year-old', 'so-call']
