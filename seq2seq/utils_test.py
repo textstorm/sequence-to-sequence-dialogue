@@ -18,3 +18,7 @@ nltk.word_tokenize('AT&T Micro$oft')
 #when the word contains non-alphabetic characters, tokenize error
 nltk.word_tokenize('three-year-old so-call')
 #['three-year-old', 'so-call']
+nltk.word_tokenize('I want to New York')
+#['I', 'want', 'to', 'New', 'York']  In general New York can be treat as one word
+nltk.word_tokenize("what is  rock 'n' roll?")
+#['what', 'is', 'rock', "'n", "'", 'roll', '?']    rock 'n' roll
