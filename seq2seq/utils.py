@@ -66,31 +66,19 @@ def filter_sentences_with_punct(sentences):
 #retain '
 def filter_sentences_without_punct(sentences):
   def filter_sentence(sentence):
+    sentence = re.sub(r"[<u></u>]", r"", sentence)
     return re.sub(r"[^a-zA-Z0-9\']+", r" ", sentence)
   return [filter_sentence(sentence) for sentence in sentences]
 
 def tokenizer(sentence):
   return nltk.word_tokenize(sentence)
 
-def build_vocab(sentences, max_words=None):
-  print_out("Buildding vocabulary...")
+def build_worddict_test(sentences):
   word_count = Counter()
   for sentence in sentences:
     for word in sentence.split(" "):
       word_count[word] += 1
-
-  print_out("The dataset has %d different words totally" % len(word_count))
-  if not max_words:
-    max_words = len(word_count)
-  else:
-    filter_out_words = len(word_count) - max_words
-
-  word_dict = word_count.most_common(max_words)
-  index2word = ["<unk>"] + ["<s>"] + ["</s>"] + [word[0] for word in word_dict]
-  word2index = dict([(word, idx) for idx, word in enumerate(index2word)])
-
-  print_out("%d words filtered out of the vocabulary and %d words in the vocabulary" % (filter_out_words, max_words))
-  return index2word, word2index
+  return word_count
 
 def build_vocab_with_nltk(sentences, max_words=None):
   print_out("Buildding vocabulary...")
@@ -102,8 +90,7 @@ def build_vocab_with_nltk(sentences, max_words=None):
   print_out("The dataset has %d different words totally" % len(word_count))
   if not max_words:
     max_words = len(word_count)
-  else:
-    filter_out_words = len(word_count) - max_words
+  filter_out_words = len(word_count) - max_words
 
   word_dict = word_count.most_common(max_words)
   index2word = ["<unk>"] + ["<s>"] + ["</s>"] + [word[0] for word in word_dict]
