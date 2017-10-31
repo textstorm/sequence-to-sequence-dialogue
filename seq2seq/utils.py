@@ -7,6 +7,8 @@ import numpy as np
 import sys
 import time
 import nltk
+import re
+import os
 
 #data utils
 def load_data(file_dir):
@@ -45,20 +47,20 @@ def load_data_test(file_dir):
   return sentences
 
 
-# def filter_sentences(sentences, whitelist):
-#   """
-#     filter out the emoji in a sentence
-#     whitelist: 
-#   """
-#   def filter_sentence(sentence, whitelist):
-#     return "".join([ch for ch in sentence if ch in whitelist])
+def filter_sentences_with_whitelist(sentences, whitelist):
+  """
+    filter out the emoji in a sentence
+    whitelist: 
+  """
+  def filter_sentence(sentence, whitelist):
+    return "".join([ch for ch in sentence if ch in whitelist])
 
-#   return [filter_sentence(sentence, whitelist) for sentence in sentences] 
+  return [filter_sentence(sentence, whitelist) for sentence in sentences] 
 
 def filter_sentences_with_punct(sentences):
   def filter_sentence(sentence):
     sentence = re.sub(r"([.!?])", r" \1", sentence)
-    sentence = re.sub(r"[<u></u>]", r"", sentence)
+    sentence = re.sub(r"<u>|</u>", r"", sentence)
     #return re.sub(r"[^a-zA-Z.!?]+", r" ", sentence)
     return re.sub(r"[^a-zA-Z0-9.,!?\']+", r" ", sentence)
   return [filter_sentence(sentence) for sentence in sentences]
@@ -66,19 +68,12 @@ def filter_sentences_with_punct(sentences):
 #retain '
 def filter_sentences_without_punct(sentences):
   def filter_sentence(sentence):
-    sentence = re.sub(r"[<u></u>]", r"", sentence)
+    sentence = re.sub(r"<u>|</u>", r"", sentence)
     return re.sub(r"[^a-zA-Z0-9\']+", r" ", sentence)
   return [filter_sentence(sentence) for sentence in sentences]
 
 def tokenizer(sentence):
   return nltk.word_tokenize(sentence)
-
-def build_worddict_test(sentences):
-  word_count = Counter()
-  for sentence in sentences:
-    for word in sentence.split(" "):
-      word_count[word] += 1
-  return word_count
 
 def build_vocab_with_nltk(sentences, max_words=None):
   print_out("Buildding vocabulary...")
