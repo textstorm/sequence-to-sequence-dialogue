@@ -43,3 +43,12 @@ re.sub(r"[^a-zA-Z0-9\' ]+", r"", sentence)
 pattern = re.compile('([^\s\w\']|_)+')
 pattern.sub('', sentence)
 
+#3.character statistics
+from collections import Counter
+def char_statistics(sentences, counter):
+  for sentence in sentences:
+    counter.update(sentence)
+  return counter
+
+counter = Counter()
+char_counter = char_statistics(sentences, counter)
