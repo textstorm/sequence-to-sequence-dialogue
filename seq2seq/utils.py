@@ -14,6 +14,23 @@ def load_data(file_dir):
   start_time =time.time()
   f = open(file_dir, 'r')
   sentences = []
+  while True:
+    sentence = f.readline()
+    if not sentence:
+      break
+
+    sentence = sentence.strip().lower()
+    sentences.append(sentence)
+
+  f.close()
+  print_out("Loaded %d sentences from files, time %.2fs" % (len(sentences), time.time() - start_time))
+  return sentences
+
+def load_data_test(file_dir):
+  print_out("Loading data files.")
+  start_time =time.time()
+  f = open(file_dir, 'r')
+  sentences = []
   i = 0
   while i < 100:
     sentence = f.readline()
@@ -38,10 +55,11 @@ def load_data(file_dir):
 
 #   return [filter_sentence(sentence, whitelist) for sentence in sentences] 
 
-def filter_sentences(sentences):
+def filter_sentences_with_punct(sentences):
   def filter_sentence(sentence):
     sentence = re.sub(r"([.!?])", r" \1", sentence)
-    return re.sub(r"[^a-zA-Z.!?]+", r" ", sentence)
+    #return re.sub(r"[^a-zA-Z.!?]+", r" ", sentence)
+    return re.sub(r"[^a-zA-Z0-9.,!?\' ]+", r"", sentence)
   return [filter_sentence(sentence) for sentence in sentences]
 
 def tokenizer(sentence):
