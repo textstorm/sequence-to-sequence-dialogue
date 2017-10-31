@@ -22,3 +22,16 @@ nltk.word_tokenize('I want to New York')
 #['I', 'want', 'to', 'New', 'York']  In general New York can be treat as one word
 nltk.word_tokenize("what is  rock 'n' roll?")
 #['what', 'is', 'rock', "'n", "'", 'roll', '?']    rock 'n' roll
+
+#2.filter word
+#remove all non-alphabetic characters include number and space
+#do not advocate use in dialogue data cleaning
+re.sub(r'\W+', '', "micro$oft and")       #'microoftand'
+
+#remove all non-alphabetic characters except .!?
+#keep space but maybe split the word
+re.sub(r"[^a-zA-Z.!?]+", r" ", "micro$oft and")       #'micro oft and'
+
+#remove all non-alphabetic characters except .!?spce
+#directly remove the non-character in the word
+re.sub(r"[^a-zA-Z.!? ]+", r"", "micro$oft and")       #'microoft and'
