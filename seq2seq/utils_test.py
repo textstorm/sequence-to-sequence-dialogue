@@ -32,6 +32,14 @@ re.sub(r'\W+', '', "micro$oft and")       #'microoftand'
 #keep space but maybe split the word
 re.sub(r"[^a-zA-Z.!?]+", r" ", "micro$oft and")       #'micro oft and'
 
-#remove all non-alphabetic characters except .!?spce
+#remove all non-alphabetic non-number characters except .!?spce
 #directly remove the non-character in the word
-re.sub(r"[^a-zA-Z.!? ]+", r"", "micro$oft and")       #'microoft and'
+re.sub(r"[^a-zA-Z0-9.!? ]+", r"", "micro$oft and")       #'microoft and'
+
+#
+re.sub(r"[^a-zA-Z0-9\' ]+", r"", sentence)
+
+#maybe faster
+pattern = re.compile('([^\s\w\']|_)+')
+pattern.sub('', sentence)
+
