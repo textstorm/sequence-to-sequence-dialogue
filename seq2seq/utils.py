@@ -127,14 +127,28 @@ def vectorize(queries,  answers, word2index, sort_by_len=False, verbose=True):
   """
   vec_queries = []
   vec_answers = []
-  for idx, (query, answer) in enumerate(zip(queries, answers)):
-    seq_q = [word2index[w] if w in word2index else 0 for w in query]
-    seq_a = [word2index[w] if w in word2index else 0 for w in answer]
-    vec_queries.append(seq_q)
-    vec_answers.append(seq_a)
+  # seq_q = []
+  # seq_a = []
+  # for idx, (query, answer) in enumerate(zip(queries, answers)):
+  #   #seq_q.append([word2index[w] if w in word2index else 0 for w in query])
+  #   #seq_a = [word2index[w] if w in word2index else 0 for w in answer]
+  #   seq_q.append([word2index[w] if w in word2index else 0 for w in query])
+  #   seq_a.append([word2index[w] if w in word2index else 0 for w in answer])
+  #   vec_queries.append(seq_q)
+  #   vec_answers.append(seq_a)
+  #   seq_q = []
+  #   seq_a = []
 
-    if verbose and (idx % 5000 == 0):
-      print_out("Vectorization: processed {}".format(idx))
+  #   if verbose and (idx % 5000 == 0):
+  #     print_out("Vectorization: processed {}".format(idx))
+
+  for query in queries:
+    seq_q = [word2index[w] if w in word2index else 0 for w in query]
+    vec_queries.append(seq_q)
+
+  for answer in answers:
+    seq_a = [word2index[w] if w in word2index else 0 for w in answer]
+    vec_queries.append(seq_a)
 
   def len_argsort(seq):
     return sorted(range(len(seq)), key=lambda x: len(seq[x]))
