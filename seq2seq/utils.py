@@ -75,11 +75,17 @@ def filter_sentences_without_punct(sentences):
 def tokenizer(sentence):
   return nltk.word_tokenize(sentence)
 
+def tokenize_data(sentences):
+  tokens = []
+  for sentence in sentences:
+    tokens.append(tokenizer(sentence))
+  return tokens
+
 def build_vocab_with_nltk(sentences, max_words=None):
   print_out("Buildding vocabulary...")
   word_count = Counter()
   for sentence in sentences:
-    for word in tokenizer(sentence):
+    for word in sentence:
       word_count[word] += 1
 
   print_out("The dataset has %d different words totally" % len(word_count))
@@ -101,7 +107,7 @@ def split_data(sentences, limits):
   print_out("The dataset has %d queries and answers tuple" % num_example)
 
   for i in range(0, len(sentences), 2):
-    qlen, alen = len(sentences[i].split(" ")), len(sentences[i+1].split(" "))
+    qlen, alen = len(sentences[i]), len(sentences[i+1])
     if qlen >= limits.q_min_len and alen >= limits.a_min_len:
       if qlen <= limits.q_max_len and alen <= limits.a_max_len:
         queries.append(sentences[i])
