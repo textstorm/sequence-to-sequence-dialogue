@@ -197,20 +197,19 @@ def get_batches(queries, answers, batch_size):
   """
     read all data into ram once
   """
-  sos = np.array([1]).astype("int32")
-  eos = np.array([2]).astype("int32")
+  sos = [1]
+  eos = [2]
 
   minibatches = get_batchidx(len(queries), batch_size)
   all_bat = []
   for minibatch in minibatches:
     q_bat = [queries[t] for t in minibatch]
     a_bat = [answers[t] for t in minibatch]
-    q_pad, q_len = padding_data(q_bat)
-    a_pad, a_len = padding_data(a_bat)
-    src, src_len = q_pad, q_len
-    tgt_in = map(lambda tgt: (np.concatenate((sos, tgt))), a_pad)
-    tgt_out = map(lambda tgt: (np.concatenate((tgt, eos))), a_pad)
-    tgt_len = map(lambda x: (x + 1), a_len)
+    tgt_in = map(lambda tgt: (sos + tgt), a_bat)
+    tgt_out = map(lambda tgt: (tgt + eos), a_bat)
+    src, src_len = padding_data(q_bat)
+    tgt_in, tgt_len = padding_data(tgt_in)
+    tgt_out, tgt_len = padding_data(tgt_out)
     if not isinstance(tgt_in, np.ndarray):
       tgt_in = np.array(tgt_in)
     if not isinstance(tgt_out, np.ndarray):
