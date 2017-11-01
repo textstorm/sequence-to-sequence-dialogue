@@ -59,7 +59,7 @@ def filter_sentences_with_whitelist(sentences, whitelist):
 
 def filter_sentences_with_punct(sentences):
   def filter_sentence(sentence):
-    sentence = re.sub(r"([.!?])", r" \1", sentence)
+    #sentence = re.sub(r"([.!?])", r" \1", sentence)
     sentence = re.sub(r"<u>|</u>", r"", sentence)
     #return re.sub(r"[^a-zA-Z.!?]+", r" ", sentence)
     return re.sub(r"[^a-zA-Z0-9.,!?\']+", r" ", sentence)
@@ -118,7 +118,7 @@ def split_data(sentences, limits):
   print_out('%d tuple filtered out of the raw data' % filter_out_len)
   return queries, answers
 
-def vectorize(queries,  answers, word2index, sort_by_len=False, verbose=True):
+def vectorize(queries,  answers, word2index, sort_by_len=False):
   """
     note: the dict is only 50K,words not in dict is 0
     queries: questions after vectorize
@@ -127,34 +127,23 @@ def vectorize(queries,  answers, word2index, sort_by_len=False, verbose=True):
   """
   vec_queries = []
   vec_answers = []
-  # seq_q = []
-  # seq_a = []
-  # for idx, (query, answer) in enumerate(zip(queries, answers)):
-  #   #seq_q.append([word2index[w] if w in word2index else 0 for w in query])
-  #   #seq_a = [word2index[w] if w in word2index else 0 for w in answer]
-  #   seq_q.append([word2index[w] if w in word2index else 0 for w in query])
-  #   seq_a.append([word2index[w] if w in word2index else 0 for w in answer])
-  #   vec_queries.append(seq_q)
-  #   vec_answers.append(seq_a)
-  #   seq_q = []
-  #   seq_a = []
-
-  #   if verbose and (idx % 5000 == 0):
-  #     print_out("Vectorization: processed {}".format(idx))
-
   for query in queries:
     seq_q = [word2index[w] if w in word2index else 0 for w in query]
     vec_queries.append(seq_q)
 
   for answer in answers:
     seq_a = [word2index[w] if w in word2index else 0 for w in answer]
-    vec_queries.append(seq_a)
+    vec_answers.append(seq_a)
 
   def len_argsort(seq):
     return sorted(range(len(seq)), key=lambda x: len(seq[x]))
   
   if sort_by_len:
-    sort_index = len_argsort(vec_queries)
+    vec_queries_and_answers = []
+    for idx, query in enumerate(vec_queries):
+      vec_queries_and_answers.append(query + vec_answers[idx])
+
+    sort_index = len_argsort(vec_queries_and_answers)
     vec_queries = [vec_queries[i] for i in sort_index]
     vec_answers = [vec_answers[i] for i in sort_index]
 
