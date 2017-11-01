@@ -127,15 +127,13 @@ def vectorize(queries,  answers, word2index, sort_by_len=False, verbose=True):
   """
   vec_queries = []
   vec_answers = []
-  for idx, (q, a) in enumerate(zip(queries, answers)):
-    q_words = q.split(' ')
-    a_words = a.split(' ')
-    seq_q = [word2index[w] if w in word2index else 0 for w in q_words]
-    seq_a = [word2index[w] if w in word2index else 0 for w in a_words]
+  for idx, (query, answer) in enumerate(zip(queries, answers)):
+    seq_q = [word2index[w] if w in word2index else 0 for w in query]
+    seq_a = [word2index[w] if w in word2index else 0 for w in answer]
     vec_queries.append(seq_q)
     vec_answers.append(seq_a)
 
-    if verbose and (idx % 50000 == 0):
+    if verbose and (idx % 5000 == 0):
       print_out("Vectorization: processed {}".format(idx))
 
   def len_argsort(seq):
