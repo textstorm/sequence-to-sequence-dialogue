@@ -46,6 +46,11 @@ def load_data_test(file_dir):
   print_out("Loaded %d sentences from files, time %.2fs" % (len(sentences), time.time() - start_time))
   return sentences
 
+def save_data(file_dir, sentences):
+  f = open(file_dir, "w")
+  for sentence in sentences:
+    f.write(" ".join(sentence) + "\n")
+  f.close()
 
 def filter_sentences_with_whitelist(sentences, whitelist):
   """
