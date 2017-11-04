@@ -9,21 +9,13 @@ class BatchedInput(collections.namedtuple("BatchedInput",
                                            "target_output"))):
   pass
 
-
-class BatchedInput(collections.namedtuple("BatchedInput",
-                                          ("initializer",
-                                           "source",
-                                           "target_input",
-                                           "target_output",
-                                           "source_sequence_length",
-                                           "target_sequence_length"))):
 def get_iterator(src_dataset,
                  tgt_dataset,
                  src_vocab_table,
                  tgt_vocab_table,
                  batch_size,
-                 source_reverse,
-                 num_threads=4):
+                 num_threads=4,
+                 output_buffer_size):
 
   if not output_buffer_size:
     output_buffer_size = batch_size * 1000
@@ -55,7 +47,9 @@ def get_iterator(src_dataset,
   return BatchedInput(
     initializer=batch_iterator.initializer,
     source=source,
-    )
+    target_input=target_input,
+    target_output=target_output)
+
   def batching_fun(x):
     return x.padded_batch(
       batch_size,
