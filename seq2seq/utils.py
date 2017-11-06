@@ -230,6 +230,7 @@ class BatchedInput(collections.namedtuple("BatchedInput",
                                            "target_output",
                                            "source_sequence_length",
                                            "target_sequence_length"))):
+  pass
 
 def get_iterator(src_dataset,
                  tgt_dataset,
