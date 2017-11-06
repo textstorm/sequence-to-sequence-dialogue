@@ -40,7 +40,7 @@ class Model(object):
         self.output_layer = tf.layers.Dense(
             self.decoder_vocab_size, use_bias=False, name="output_projection")
 
-    self.build_forward()
+    res = self.build_forward()
 
     self.saver = tf.train.Saver(tf.global_variables())
 
@@ -50,14 +50,13 @@ class Model(object):
   def build_forward(self):
     with tf.variable_scope("seq2seq"):
       encoder_outputs, encoder_state = self._build_encoder()
-      res = self._build_decoder(encoder_outputs, encoder_state)
+      logits, sample_id, final_state = self._build_decoder(encoder_outputs, encoder_state)
 
       if self.mode != tf.contrib.learn.ModeKeys.INFER:
-        self._build_loss(res[0])
-        self._build_train()
+        loss = self._build_loss(logits)
       else:
-        self.infer_logits, self.infer_sample_id, self.final_context_state, = res
-        self.loss = None
+        loss = None
+    return logits, loss, final_state, sample_id
 
   def _build_encoder(self):
     """Building rnn encoder"""
@@ -215,12 +214,15 @@ class Model(object):
     return tensor.shape[time_axis].value or tf.shape(tensor)[time_axis]
 
   def _build_loss(self, logits):
-    with tf.name_scope("train"):
-      max_len = self.get_max_time(self.decoder_input)
-      loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.decoder_input, logits=logits)
-      weight = tf.sequence_mask(self.decoder_length, max_len, dtype=logits.dtype)
-
-      self.loss_op = tf.reduce_sum(loss * weight) / tf.to_float(self.batch_size)
+    iterator = self.iterator
+    target_output = iterator.target_output
+    target_sequence_length = iterator.target_sequence_length
+    max_len = self.get_max_time(target_output)
+    loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
+      labels=target_output, logits=logits)
+    weight = tf.sequence_mask(target_sequence_length, max_len, dtype=logits.dtype)
+    loss_op tf.reduce_sum(loss * weight) / tf.to_float(self.batch_size)
+    return loss_op
 
   def _build_train(self):
     with tf.name_scope("train"):
