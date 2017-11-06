@@ -53,6 +53,12 @@ def save_data(file_dir, sentences):
     f.write(" ".join(sentence) + "\n")
   f.close()
 
+def save_vocab(file_dir, index2word):
+  f = open(file_dir, "w")
+  for sentence in sentences:
+    f.write("".join(sentence) + "\n")
+  f.close()
+
 def filter_sentences_with_whitelist(sentences, whitelist):
   """
     filter out the emoji in a sentence
