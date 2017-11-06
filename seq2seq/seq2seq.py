@@ -1,53 +1,53 @@
 
-from tensorflow.python.layers import core as layers_core
 import tensorflow as tf
 import numpy as np
 import collections
 import time
 
 class Model(object):
-  def __init__(self, args, mode, name="Model"):
-    self._num_layers = args.num_layers
-    self._encoder_vocab_size = args.encoder_vocab_size
-    self._encoder_embed_size = args.encoder_embed_size
-    self._decoder_vocab_size = args.decoder_vocab_size
-    self._decoder_embed_size = args.decoder_embed_size
-    self._hidden_size = args.hidden_size
-    self._forget_bias = args.forget_bias
-    self._num_layers = args.num_layers
-    self._dropout = args.dropout
-    self._encoder_type = args.encoder_type #bi-lstm or not
-    self._beam_width = args.beam_width
-    self._max_grad_norm = args.max_grad_norm
+  def __init__(self,
+               args, 
+               mode, 
+               iterator,
+               src_tgt_vocab,
+               name="Model"):
 
-    self.batch_size = args.batch_size
+    self.iterator = iterator
     self.mode = mode
+    self.src_vocab_table = src_tgt_vocab
+    self.tgt_vocab_table = src_tgt_vocab
+    self.encoder_vocab_size = args.encoder_vocab_size
+    self.encoder_embed_size = args.encoder_embed_size
+    self.decoder_vocab_size = args.decoder_vocab_size
+    self.decoder_embed_size = args.decoder_embed_size
 
-    self._optimizer = tf.train.AdamOptimizer()
+    self.num_layers = args.num_layers
+
+    self.hidden_size = args.hidden_size
+    self.forget_bias = args.forget_bias
+    self.dropout = args.dropout
+    self.encoder_type = args.encoder_type #bi-lstm or not
+    self.beam_width = args.beam_width
+    self.max_grad_norm = args.max_grad_norm
+    self.batch_size = args.batch_size
+
+    self.optimizer = tf.train.AdamOptimizer()
     self.global_step = tf.get_variable(
       'global_step', [], 'int32', tf.constant_initializer(0), trainable=False)
 
     with tf.variable_scope("seq2seq"):
-      with tf.variable_scope("decoder"):
-        self.output_layer = layers_core.Dense(
-            self._decoder_vocab_size, use_bias=False, name="output_projection")
+      with tf.variable_scope("decoder/output_projection"):
+        self.output_layer = tf.layers.Dense(
+            self.decoder_vocab_size, use_bias=False, name="output_projection")
 
-    self._build_placeholder()
-    self._build_forward()
+    self.build_forward()
 
     self.saver = tf.train.Saver(tf.global_variables())
 
-  def _build_placeholder(self):
-    with tf.name_scope("data"):
-      self.encoder_input = tf.placeholder(tf.int32, [None, None], name="encoder_data")
-      self.encoder_length = tf.placeholder(tf.int32, [None], name="encoder_length")
-      self.decoder_input = tf.placeholder(tf.int32, [None, None], name="decoder_data")
-      self.decoder_length = tf.placeholder(tf.int32, [None], name="decoder_length")
-
-    with tf.name_scope("hpara"):
+    with tf.name_scope("hparam"):
       self.lr = tf.placeholder(tf.float32, [], name="learning_rate")
 
-  def _build_forward(self):
+  def build_forward(self):
     with tf.variable_scope("seq2seq"):
       encoder_output, encoder_state = self._build_encoder()
       res = self._build_decoder(encoder_state)
@@ -60,13 +60,18 @@ class Model(object):
         self.loss = None
 
   def _build_encoder(self):
+    """Building rnn encoder"""
+    iterator = self.iterator
+    source = iterator.source
     with tf.variable_scope("encoder") as scope:
-      encoder_embed = self._build_embedding(self._encoder_vocab_size, self._encoder_embed_size, "en_embed")
-      encoder_embed_inp = tf.nn.embedding_lookup(encoder_embed, self.encoder_input)
+      encoder_embed = self._build_embedding(
+        self.encoder_vocab_size, self.encoder_embed_size, "en_embed")
+
+      encoder_embed_inp = tf.nn.embedding_lookup(encoder_embed, source)
 
       if self._encoder_type == "uni":
         encoder_cell = self._build_encoder_cell(
-          self._hidden_size, self._forget_bias, self._num_layers, self.mode, self._dropout)
+          self.hidden_size, self.forget_bias, self.num_layers, self.mode, self.dropout)
         encoder_output, encoder_state = tf.nn.dynamic_rnn(
           encoder_cell, encoder_embed_inp, dtype=tf.float32, sequence_length=self.encoder_length)
 
@@ -161,14 +166,18 @@ class Model(object):
       encoder_initial_state = encoder_state
     return cell, encoder_initial_state
 
-  def _build_rnn_cell(self, num_units, forget_bias, num_layers, mode, dropout):
+  def _single_cell_fn(self, num_units, forget_bias, mode, dropout):
     dropout = dropout if mode == tf.contrib.learn.ModeKeys.TRAIN else 0.0
     cell = tf.contrib.rnn.BasicLSTMCell(num_units=num_units, forget_bias=forget_bias)
     if dropout > 0.0:
       cell = tf.contrib.rnn.DropoutWrapper(cell=cell, input_keep_prob=(1.0 - dropout))
+    return cell
+
+  def _build_rnn_cell(self, num_units, forget_bias, num_layers, mode, dropout):
 
     cell_list = []
     for i in range(num_layers):
+      cell = self._single_cell_fn(num_units, forget_bias, mode, dropout)
       cell_list.append(cell)
 
     if num_layers == 1:
