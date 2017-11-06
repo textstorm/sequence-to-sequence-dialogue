@@ -245,23 +245,30 @@ class Model(object):
     loss_op tf.reduce_sum(loss * weight) / tf.to_float(self.batch_size)
     return loss_op
 
-  def _build_train(self):
-    with tf.name_scope("train"):
-      grads_and_vars = self._optimizer.compute_gradients(self.loss_op)
-      grads_and_vars = [(tf.clip_by_norm(g, self._max_grad_norm), v) for g, v in grads_and_vars]
-      self.train_op = self._optimizer.apply_gradients(grads_and_vars, global_step=self.global_step, name="train_op")
+  # def _build_train(self):
+  #   with tf.name_scope("train"):
+  #     grads_and_vars = self._optimizer.compute_gradients(self.loss_op)
+  #     grads_and_vars = [(tf.clip_by_norm(g, self._max_grad_norm), v) for g, v in grads_and_vars]
+  #     self.train_op = self._optimizer.apply_gradients(grads_and_vars, global_step=self.global_step, name="train_op")
 
-  def train(self, encoder_input, encoder_length, decoder_input, decoder_length, session):
-    feed_dict = {self.encoder_input: encoder_input, self.encoder_length: encoder_length,
-        self.decoder_input: decoder_input, self.decoder_length: decoder_length}
+  def train(self, session):
+    assert self.mode == tf.contrib.learn.ModeKeys.TRAIN
+    return session.run([self.update,
+                        self.train_loss,
+                        self.predict_count,
+                        self.global_step,
+                        self.word_count,
+                        self.batch_size])
 
-    loss, _ = session.run([self.loss_op, self.train_op], feed_dict=feed_dict)
-    return loss
+  def eval(self, session):
+    assert self.mode == tf.contrib.learn.ModeKeys.EVAL
+    return session.run([self.eval_loss,
+                        self.predict_count,
+                        self.batch_size])
 
-  def infer(self, encoder_input, encoder_length, session):
-    feed_dict = {self.encoder_input: encoder_input, self.encoder_length: encoder_length}
-    logits, sample_id = session.run([self.infer_logits, self.infer_sample_id], feed_dict=feed_dict)
-    return sample_id
+  def infer(self, session):
+    assert self.mode == tf.contrib.learn.ModeKeys.INFER
+    return session.run([self.infer_logits, self.sample_id])
 
   def _weight_variable(self, shape, name, initializer=None):
     initializer = tf.truncated_normal_initializer(stddev=0.1)
