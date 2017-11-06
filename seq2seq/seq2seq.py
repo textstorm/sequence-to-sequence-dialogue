@@ -31,10 +31,6 @@ class Model(object):
     self.max_grad_norm = args.max_grad_norm
     self.batch_size = args.batch_size
 
-    self.optimizer = tf.train.AdamOptimizer()
-    self.global_step = tf.get_variable(
-      'global_step', [], 'int32', tf.constant_initializer(0), trainable=False)
-
     with tf.variable_scope("seq2seq"):
       with tf.variable_scope("decoder/output_projection"):
         self.output_layer = tf.layers.Dense(
@@ -42,10 +38,35 @@ class Model(object):
 
     res = self.build_forward()
 
-    self.saver = tf.train.Saver(tf.global_variables())
+    if self.mode == tf.contrib.learn.ModeKeys.TRAIN:
+      self.train_loss = res[1]
+      self.word_count = tf.reduce_sum(
+        self.iterator.source_sequence_length) + tf.reduce_sum(
+        self.iterator.target_sequence_length)
 
-    with tf.name_scope("hparam"):
-      self.lr = tf.placeholder(tf.float32, [], name="learning_rate")
+    elif self.mode == tf.contrib.learn.ModeKeys.EVAL:
+      self.eval_loss = res[1]
+    elif self.mode == tf.contrib.learn.ModeKeys.INFER:
+      self.infer_logits, _, self.final_state, self.sample_id = res
+
+    if self.mode != tf.contrib.learn.ModeKeys.INFER:
+      self.predict_count = tf.reduce_sum(self.iterator.target_sequence_length)
+
+    params = tf.trainable_variables()
+    self.global_step = tf.get_variable(0, trainable=False)
+
+    if self.mode == tf.contrib.learn.ModeKeys.TRAIN:
+      self.learning_rate = args.learning_rate
+      optimizer = tf.train.AdamOptimizer(self.learning_rate)
+      gradients = tf.gradients(
+        self.train_loss, 
+        params)
+      clipped_gradients, gradient_norm = tf.clip_by_global_norm(
+        gradients, self.max_grad_norm)
+      self.update = optimizer.apply_gradients(
+        zip(clipped_gradients, params), global_step=self.global_step)
+
+    self.saver = tf.train.Saver(tf.global_variables())
 
   def build_forward(self):
     with tf.variable_scope("seq2seq"):
