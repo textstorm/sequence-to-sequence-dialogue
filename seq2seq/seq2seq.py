@@ -49,8 +49,8 @@ class Model(object):
 
   def build_forward(self):
     with tf.variable_scope("seq2seq"):
-      encoder_output, encoder_state = self._build_encoder()
-      res = self._build_decoder(encoder_state)
+      encoder_outputs, encoder_state = self._build_encoder()
+      res = self._build_decoder(encoder_outputs, encoder_state)
 
       if self.mode != tf.contrib.learn.ModeKeys.INFER:
         self._build_loss(res[0])
@@ -63,6 +63,7 @@ class Model(object):
     """Building rnn encoder"""
     iterator = self.iterator
     source = iterator.source
+    source_sequence_length = iterator.source_sequence_length
     with tf.variable_scope("encoder") as scope:
       encoder_embed = self._build_embedding(
         self.encoder_vocab_size, self.encoder_embed_size, "en_embed")
@@ -72,18 +73,26 @@ class Model(object):
       if self._encoder_type == "uni":
         encoder_cell = self._build_encoder_cell(
           self.hidden_size, self.forget_bias, self.num_layers, self.mode, self.dropout)
-        encoder_output, encoder_state = tf.nn.dynamic_rnn(
-          encoder_cell, encoder_embed_inp, dtype=tf.float32, sequence_length=self.encoder_length)
+        encoder_outputs, encoder_state = tf.nn.dynamic_rnn(
+          encoder_cell, 
+          encoder_embed_inp, 
+          dtype=tf.float32, 
+          sequence_length=source_sequence_length)
 
       elif self._encoder_type == "bi":
-        num_bi_layers = self._num_layers / 2
+        num_bi_layers = self.num_layers / 2
         fw_cell = self._build_encoder_cell(
-          self._hidden_size, self._forget_bias, num_bi_layers, self.mode, self._dropout)
+          self.hidden_size, self.forget_bias, num_bi_layers, self.mode, self.dropout)
         bw_cell = self._build_encoder_cell(
-          self._hidden_size, self._forget_bias, num_bi_layers, self.mode, self._dropout)
-        bi_outputs, bi_state = tf.nn.bidirectional_dynamic_rnn(
-          fw_cell, bw_cell, encoder_embed_inp, dtype=tf.float32, sequence_length=self.encoder_length)
-        bi_outputs = tf.concat(bi_outputs, -1)
+          self.hidden_size, self.forget_bias, num_bi_layers, self.mode, self.dropout)
+        encoder_outputs, bi_state = tf.nn.bidirectional_dynamic_rnn(
+          fw_cell, 
+          bw_cell, 
+          encoder_embed_inp, 
+          dtype=tf.float32, 
+          sequence_length=source_sequence_length)
+
+        encoder_outputs = tf.concat(encoder_outputs, -1)
 
         if num_bi_layers == 1:
           encoder_state = bi_state
@@ -97,59 +106,73 @@ class Model(object):
       else:
         raise ValueError("Unknown encoder_type %s" % self._encoder_type)
 
-    return encoder_output, encoder_state
+    return encoder_outputs, encoder_state
 
-  def _build_decoder(self, encoder_state):
+  def _build_decoder(self, encoder_outputs, encoder_state):
+    iterator = self.iterator
+    target_input = iterator.target_input
+    target_sequence_length = iterator.target_sequence_length
+    tgt_sos_id = tf.cast(self.tgt_vocab_table.lookup(tf.constant("<s>")), tf.int32)
+    tgt_eos_id = tf.cast(self.tgt_vocab_table.lookup(tf.constant("</s>")), tf.int32)
+
     with tf.variable_scope("decoder") as scope:
-      decoder_embed = self._build_embedding(self._decoder_vocab_size, self._decoder_embed_size, "de_embed")
-      decoder_embed_inp = tf.nn.embedding_lookup(decoder_embed, self.decoder_input)
+      decoder_embed = self._build_embedding(
+        self.decoder_vocab_size, self.decoder_embed_size, "de_embed")
+
+      decoder_embed_inp = tf.nn.embedding_lookup(decoder_embed, target_input)
 
       decoder_cell, decoder_initial_state = self._build_decoder_cell(
-        self._hidden_size, 
-        self._forget_bias, 
-        self._num_layers, 
+        self.hidden_size, 
+        self.forget_bias, 
+        self.num_layers, 
         self.mode, 
         encoder_state, 
-        self._dropout)
+        self.dropout)
 
       if self.mode != tf.contrib.learn.ModeKeys.INFER:
         helper = tf.contrib.seq2seq.TrainingHelper(
           decoder_embed_inp, 
-          self.decoder_length, 
+          target_sequence_length, 
           name="de_helper")
 
         my_decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper, decoder_initial_state)
-        output, final_state, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder)
+        outputs, final_state, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder)
 
-        sample_id = output.sample_id
-        logits = self.output_layer(output.rnn_output)
+        sample_id = outputs.sample_id
+        logits = self.output_layer(outputs.rnn_output)
 
       else:
         #unk:0 sos:1 eos:2
-        #start_tokens = tf.fill([self.batch_size], 1)
-        start_tokens = tf.fill([1], 1)
-        end_token = 2
+        start_tokens = tf.fill([self.batch_size], tgt_sos_id)
+        end_token = tgt_eos_id
 
-        if self._beam_width > 0:
-          my_decoder = tf.contrib.seq2seq.BeamSearchDecoder(cell=decoder_cell, embedding=decoder_embed, start_tokens=start_tokens, 
-              end_token=end_token, initial_state=decoder_initial_state, output_layer=self.output_layer, beam_width=self._beam_width)
+        if self.beam_width > 0:
+          my_decoder = tf.contrib.seq2seq.BeamSearchDecoder(
+            cell=decoder_cell, 
+            embedding=decoder_embed, 
+            start_tokens=start_tokens, 
+            end_token=end_token, 
+            initial_state=decoder_initial_state,
+            utput_layer=self.output_layer, 
+            beam_width=self.beam_width)
 
         else:
-          helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(decoder_embed, start_tokens, end_token)
+          helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(
+            decoder_embed, start_tokens, end_token)
           my_decoder = tf.contrib.seq2seq.BasicDecoder(
             decoder_cell, 
             helper, 
             decoder_initial_state, 
             output_layer=self.output_layer)
 
-        output, final_state, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder)
+        outputs, final_state, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder)
 
-        if self._beam_width > 0:
+        if self.beam_width > 0:
           logits = tf.no_op()
-          sample_id = output.predicted_ids
+          sample_id = outputs.predicted_ids
         else:
-          logits = output.rnn_output
-          sample_id = output.sample_id
+          logits = outputs.rnn_output
+          sample_id = outputs.sample_id
 
     return logits, sample_id, final_state
 
@@ -157,11 +180,13 @@ class Model(object):
 
     return self._build_rnn_cell(num_units, forget_bias, num_layers, mode, dropout)
 
-  def _build_decoder_cell(self, num_units, forget_bias, num_layers, mode, encoder_state, dropout):
+  def _build_decoder_cell(self, num_units, forget_bias, 
+                          num_layers, mode, encoder_state, dropout):
     cell = self._build_rnn_cell(num_units, forget_bias, num_layers, mode, dropout)
 
-    if self._beam_width > 0:
-      encoder_initial_state = tf.contrib.seq2seq.tile_batch(encoder_state, self._beam_width)
+    if mode == tf.contrib.learn.ModeKeys.TRAIN and self.beam_width > 0:
+      encoder_initial_state = tf.contrib.seq2seq.tile_batch(
+        encoder_state, multiplier=self.beam_width)
     else:
       encoder_initial_state = encoder_state
     return cell, encoder_initial_state
