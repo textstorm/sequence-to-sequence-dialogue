@@ -47,13 +47,13 @@ def load_data_test(file_dir):
   print_out("Loaded %d sentences from files, time %.2fs" % (len(sentences), time.time() - start_time))
   return sentences
 
-def save_data(file_dir, sentences):
+def save_word_list(file_dir, sentences):
   f = open(file_dir, "w")
   for sentence in sentences:
     f.write(" ".join(sentence) + "\n")
   f.close()
 
-def save_vocab(file_dir, index2word):
+def save_vocab_list(file_dir, index2word):
   f = open(file_dir, "w")
   for sentence in sentences:
     f.write("".join(sentence) + "\n")

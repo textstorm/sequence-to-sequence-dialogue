@@ -39,7 +39,7 @@ class Limits(
   pass
 
 def get_data_limits(Limits):
-    Limits.q_max_len, Limits.a_max_len, Limits.q_min_len, Limits.a_min_len = 26, 26, 1, 1
+  Limits.q_max_len, Limits.a_max_len, Limits.q_min_len, Limits.a_min_len = 26, 26, 1, 1
 
 def split_data_test(data, Limits):
   queries, answers = split_data(data, Limits)
