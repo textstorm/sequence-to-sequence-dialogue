@@ -14,7 +14,7 @@ import os
 #data utils
 def load_data(file_dir):
   print_out("Loading data files.")
-  start_time =time.time()
+  start_time = time.time()
   f = open(file_dir, 'r')
   sentences = []
   while True:
@@ -244,6 +244,7 @@ def get_iterator(src_dataset,
                  tgt_vocab_table,
                  batch_size,
                  random_seed,
+                 shuffle=True,
                  source_reverse=False,
                  num_parallel_calls=4,
                  output_buffer_size=None,
@@ -261,7 +262,8 @@ def get_iterator(src_dataset,
 
   src_tgt_dataset = src_tgt_dataset.shard(num_shards, shard_index)
 
-  src_tgt_dataset = src_tgt_dataset.shuffle(output_buffer_size, random_seed)
+  if shuffle:
+    src_tgt_dataset = src_tgt_dataset.shuffle(output_buffer_size, random_seed)
 
   src_tgt_dataset = src_tgt_dataset.map(
     lambda src, tgt: (tf.string_split([src]).values, tf.string_split([tgt]).values),
