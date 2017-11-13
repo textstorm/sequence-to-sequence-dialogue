@@ -321,6 +321,43 @@ def get_iterator(src_dataset,
     source_sequence_length=src_seq_len,
     target_sequence_length=tgt_seq_len)
 
+def get_infer_iterator(src_dataset,
+                       src_vocab_table,
+                       batch_size,
+                       source_reverse=False):
+  unk_id = tf.cast(src_vocab_table.lookup(tf.constant("<unk>")), tf.int32)
+  src_eos_id = tf.cast(src_vocab_table.lookup(tf.constant("/s")), tf.int32)
+
+  src_dataset = src_dataset.map(lambda src: tf.string_split([src]).values)
+  src_dataset = src_dataset.map(
+    lambda src: tf.cast(src_vocab_table,lookup(src), tf.int32))
+
+  if source_reverse:
+    src_dataset = src_dataset.map(lambda src: tf.reverse(src, axis=[0]))
+  src_dataset = src_dataset.map(lambda src: (src, tf.size(src)))
+  src_dataset = src_dataset.map(lambda src: (src, tf.size(src)))
+
+  def batching_func(x):
+    return x.padded_batch(
+      batch_size,
+      padded_shapes=(
+        tf.TensorShape([None]),
+        tf.TensorShape()),
+      padding_values=(
+        unk_id,
+        0))
+
+  batch_dataset = batching_func(src_dataset)
+  batch_iterator = batch_dataset.make_initializable_iterator()
+  (source, src_seq_len) = batched_iter.get_next()
+  return BatchedInput(
+    initializer=batch_iterator.initializer,
+    source=source,
+    target_input=None,
+    target_output=None,
+    source_sequence_length=src_seq_len,
+    target_sequence_length=None)
+
 def print_time(s, start_time):
   """Take a start time, print elapsed duration, and return a new time."""
   print_out("%s, time %ds, %s." % (s, (time.time() - start_time), time.ctime()))
