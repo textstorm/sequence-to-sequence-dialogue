@@ -55,8 +55,8 @@ def save_word_list(file_dir, sentences):
 
 def save_vocab_list(file_dir, index2word):
   f = open(file_dir, "w")
-  for sentence in sentences:
-    f.write("".join(sentence) + "\n")
+  for word in index2word:
+    f.write("".join(word) + "\n")
   f.close()
 
 def filter_sentences_with_whitelist(sentences, whitelist):
