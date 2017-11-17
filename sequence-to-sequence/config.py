@@ -13,7 +13,6 @@ def get_args():
   parser.add_argument('--log_dir', type=str, default='logs', help='Tensorboard logs directory')
   parser.add_argument('--save_dir', type=str, default='/root/textstorm/Seq2Seq/saves/', help='Train batch size')
   parser.add_argument('--whitelist', type=str, default='0123456789abcdefghijklmnopqrstuvwxyz\' ', help="characters not filtered out")
-  parser.add_argument('--max_words', type=int, default=5000, help='The max words in the dictionary')
   parser.add_argument('--q_max_len', type=int, default=20, help='The max first utterance length')
   parser.add_argument('--a_max_len', type=int, default=20, help='The max second utterance length')
   parser.add_argument('--q_min_len', type=int, default=1, help='The min first utterance length')
