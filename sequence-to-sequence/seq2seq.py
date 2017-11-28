@@ -10,7 +10,8 @@ class Model(object):
                mode, 
                iterator,
                src_tgt_vocab,
-               name="Model"):
+               scope=None,
+               name="model"):
 
     self.iterator = iterator
     self.mode = mode
